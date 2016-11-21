@@ -18,33 +18,44 @@ IMAGE_NOISE_RATIO = 0.7
 def main(args):
     as_netin = lambda x: x[np.newaxis, :]
 
+    # read images
     img = cv2.imread(args.image_path)
     smg = cv2.imread(args.style_path)
     smg = cv2.resize(smg, (img.shape[1], img.shape[0]))
 
+    # building the net providing the path to the weights
     net = VGG16(args.weight_path, img.shape[0], img.shape[1])
     os.makedirs(args.output_path, exist_ok=True)
 
+    # initialize the session
     sess = tf.Session()
     sess.run(tf.initialize_all_variables())
 
+    # compute the content loss
     loss_content = -1
     sess.run(net['input'].assign(as_netin(img)))
     for layer_name, layer_weight in CONTENT_LAYERS:
         ref = sess.run(net[layer_name])
         loss_content += layer_weight * aopr.na_content_loss(net[layer_name], ref)
+
+    # compute the style loss
     loss_style = 0
     sess.run(net['input'].assign(as_netin(smg)))
     for layer_name, layer_weight in STYLE_LAYERS:
         ref = sess.run(net[layer_name])
         loss_style += layer_weight * aopr.na_style_loss(net[layer_name], ref)
+
+    # sum up the loss
     loss = loss_content / STYLE_STRENTH + loss_style
 
+    # use Adam Optimizer
     optimizer = tf.train.AdamOptimizer(2.0)
     fn_train = optimizer.minimize(loss)
 
+    # initialize the variables again to prepare the training
     sess.run(tf.initialize_all_variables())
-   
+  
+    # add noise to the input, and assign it to the network's input
     noise = np.random.uniform(-20, 20, img.shape).astype('float32')
     noise_img = IMAGE_NOISE_RATIO * noise + (1. - IMAGE_NOISE_RATIO) * img
     sess.run(net['input'].assign(as_netin(noise_img)))
@@ -52,6 +63,8 @@ def main(args):
     for i in range(0, args.nr_iters+1):
         if i != 0:
             sess.run(fn_train)
+
+        # save the result image and output the current loss every ``args.save_step'' iterations
         if i % args.save_step == 0:
             current_img = sess.run(net['input'])[0]
             current_loss = sess.run(loss) 

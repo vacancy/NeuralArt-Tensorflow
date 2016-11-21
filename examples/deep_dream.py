@@ -15,17 +15,24 @@ JITTER = 32
 as_netin = lambda x: x[np.newaxis, :]
 
 def make_step(sess, net, end):
+    ''' iter only one step, providing end '''
+
+    # random draw ox, oy
     ox, oy = np.random.randint(-JITTER, JITTER+1, 2)
 
     img = sess.run(net['input'])[0]
     img = np.roll(np.roll(img, ox, 1), oy, 0) # apply jitter shift
 
+    # compute the gradient 
+    # one shuold note that we are actually use L2 loss for an activation map to
+    # to compute the gradient for the input
     sess.run(net['input'].assign(as_netin(img)))
     target = net[end]
     loss = 0.5 * tf.reduce_mean(tf.pow(target, 2))
     grad = tf.gradients(loss, [net['input']])[0]
     grad = sess.run(grad)[0]
 
+    # apply gradient ascent, with normalized gradient
     img += LEARNING_RATE / np.abs(grad).mean() * grad
     img = np.clip(img, 0, 255)
 
@@ -34,10 +41,12 @@ def make_step(sess, net, end):
 
 
 def main(args):
+    # read the image, and load the network
     img = cv2.imread(args.image_path)
     net = VGG16(args.weight_path, img.shape[0], img.shape[1])
     os.makedirs(args.output_path, exist_ok=True)
 
+    # initialize the session
     sess = tf.Session()
     sess.run(tf.initialize_all_variables())
 
@@ -46,6 +55,7 @@ def main(args):
         if i != 0:
             make_step(sess, net, end=args.end)
 
+        # save the result image every ``args.save_step'' iterations
         if i % args.save_step == 0:
             current_img = sess.run(net['input'])[0]
 
