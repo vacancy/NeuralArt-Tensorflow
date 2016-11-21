@@ -5,6 +5,10 @@
 
 ''' artistic oprs, used for creating arts '''
 
+import numpy as np
+import tensorflow as tf
+
+
 def na_content_loss(inp, ref):
     n = ref.shape[1] * ref.shape[2]
     c = ref.shape[3]

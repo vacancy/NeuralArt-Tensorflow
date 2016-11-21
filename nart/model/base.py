@@ -3,6 +3,10 @@
 # 
 # This file is part of LibNeuralArt 
 
+import pickle
+import numpy as np
+
+from nart.logconf import logger
 
 class ModelBase(object):
     def __init__(self, name=None):
@@ -42,9 +46,10 @@ class NeuArtist2Loader(object):
         self.__storage = None
 
     def load_weights(self):
-        if self.__storage is None:
+        if self.__storage is not None:
             return 
-
+        
+        logger.info('initialize weight from {}'.format(self.__path))
         with open(self.__path, 'rb') as f:
             self.__storage = pickle.load(f)
     

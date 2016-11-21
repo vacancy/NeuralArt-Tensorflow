@@ -4,6 +4,7 @@
 # This file is part of LibNeuralArt 
 
 import tensorflow as tf
+import numpy as np 
 
 from .base import ModelBase, NeuArtist2Loader
 
@@ -18,7 +19,7 @@ class VGG16(ModelBase):
         self._inp_h = inp_h
         self._inp_w = inp_w
 
-    def _initialize():
+    def _initialize(self):
         def build(inpvar, layer_name):
             if layer_name.startswith('conv'):
                 W, b = self._loader.get_conv_weight(layer_name)
